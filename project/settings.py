@@ -2,140 +2,14 @@ import os
 from pathlib import Path
 from django.contrib.messages import constants as messages
 
-
-
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-# BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'SECRET_KEY_PLACEHOLDER'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-DEFAULT_LOGGING_LEVEL = "DEBUG" if DEBUG else "INFO"
-
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-
-    'formatters': {
-        'verbose': {
-            'format': '%(levelname)s %(asctime)s %(name)s %(module)s '
-                      '%(process)d %(thread)d %(message)s'
-        },
-        'simple': {
-            "datefmt": "%Y-%m-%d %H:%M:%S %z",
-            'format': '[%(asctime)s] [%(process)d] [%(levelname)s] %(name)s %(message)s',  # noqa
-        },
-    },
-    'filters': {
-        'require_debug_false': {
-            '()': 'django.utils.log.RequireDebugFalse',
-        }
-    },
-
-    'handlers': {
-        'null': {
-            'level': 'DEBUG',
-            'class': 'logging.NullHandler',
-        },
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
-        },
-        'mail_admins': {
-            'level': 'ERROR',
-            'filters': ['require_debug_false'],
-            'class': 'django.utils.log.AdminEmailHandler',
-            'formatter': 'verbose',
-            'include_html': True
-        },
-        'warn_admins': {
-            'level': 'WARN',
-            'filters': ['require_debug_false'],
-            'class': 'django.utils.log.AdminEmailHandler',
-            'formatter': 'verbose',
-            'include_html': True
-        },
-    },
-    'loggers': {
-        # ----------------------------------------
-        # general
-        # ----------------------------------------
-        # make sure we have anything >= WARN whatsoever
-        'root': {
-            'handlers':  ["console"],
-            'level': "WARN",
-            'formatter': "verbose",
-        },
-
-        # ----------------------------------------
-        # apps loggers - django (default)
-        # ----------------------------------------
-        'django': {
-            'handlers':  ["console", ],
-            'level': "INFO",
-            'formatter': "verbose",
-            'propagate': True,
-        },
-        'django.request': {
-            'handlers': ['mail_admins'],
-            'level': 'ERROR',
-            'propagate': True,
-        },
-
-        # ----------------------------------------
-        # app loggers - third part
-        # ----------------------------------------
-        'reportlab.platypus': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': True,
-        },
-
-        # ----------------------------------------
-        # app loggers - our own apps
-        # ----------------------------------------
-        'accounts': {
-            'handlers':  ["console", ],
-            'level': DEFAULT_LOGGING_LEVEL,
-            'propagate': True,
-        },
-        'contacts': {
-            'handlers':  ["console", ],
-            'level': DEFAULT_LOGGING_LEVEL,
-            'propagate': True,
-        },
-        'core': {
-            'handlers':  ["console", ],
-            'level': DEFAULT_LOGGING_LEVEL,
-            'propagate': True,
-        },
-        'documents': {
-            'handlers':  ["console", ],
-            'level': DEFAULT_LOGGING_LEVEL,
-            'propagate': True,
-        },
-        'listings': {
-            'handlers':  ["console", ],
-            'level': DEFAULT_LOGGING_LEVEL,
-            'propagate': True,
-        },
-
-    }
-}
-
-
-ALLOWED_HOSTS = []
-
+# Security settings
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'default-insecure-key')
+DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
+ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', '').split(',')
 
 # Application definition
-
 INSTALLED_APPS = [
     'django_translation_flags',
     'modeltranslation',
@@ -156,36 +30,14 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
-    'allauth.socialaccount.providers.google',  # for google auth
-
+    'allauth.socialaccount.providers.google',
 ]
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
-OCIALACCOUNT_PROVIDERS = {
-    'google': {
-        'SCOPE': [
-            'profile',
-            'email',
-        ],
-        'AUTH_PARAMS': {
-            'access_type': 'online',
-        }
-    }
-}
-
-AUTHENTICATION_BACKENDS = (
-    # used for default signin such as loggin into admin panel
-    'django.contrib.auth.backends.ModelBackend',
-
-    # used for social authentications
-    'allauth.account.auth_backends.AuthenticationBackend',
-)
-
-LOGIN_REDIRECT_URL = 'index'
-
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Added for static file serving
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -211,7 +63,6 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processor.global_variables',
-
             ],
         },
     },
@@ -219,84 +70,24 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'project.wsgi.application'
 
-
-
 # Database
-# https://docs.djangoproject.com/en/2.1/ref/settings/#databases
-
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
 
-
-
-# Password validation
-# https://docs.djangoproject.com/en/2.1/ref/settings/#auth-password-validators
-
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',  # noqa
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',  # noqa
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',  # noqa
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',  # noqa
-    },
-]
-
-
-# Internationalization
-# https://docs.djangoproject.com/en/2.2/topics/i18n/
-
-def gettext(s): return s
-
-
-"""
-    ('it', gettext('Italian')),
-    ('es', gettext('Spanish')),
-    ('ru', gettext('Russian')),
-    ('fr', gettext('French')),
-"""
-
-
-LANGUAGES = (
-    ('de', gettext('German')),
-    ('en', gettext('English')),
-)
-
-MODELTRANSLATION_DEFAULT_LANGUAGE = 'en'
-
-LANGUAGE_CODE = 'en'
-
-TIME_ZONE = 'Europe/Berlin'
-
-USE_I18N = True
-
-USE_L10N = True
-
-USE_TZ = True
-
-LOCALE_PATHS = [os.path.join(BASE_DIR, 'locale')]
-
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/2.1/howto/static-files/
-
-STATIC_ROOT = BASE_DIR / 'static'
+# Static and Media files
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
-   BASE_DIR / 'project/static',
+    BASE_DIR / 'project/static',
 ]
-
-print(BASE_DIR / 'project/static')
-# Media Folder Settings
 MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_URL = '/media/'
 
@@ -305,11 +96,26 @@ MESSAGE_TAGS = {
     messages.ERROR: 'danger'
 }
 
-SITE_ID = 1
+# Security enhancements
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_HSTS_SECONDS = 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+SECURE_SSL_REDIRECT = os.getenv('DJANGO_SECURE_SSL_REDIRECT', 'True') == 'True'
 
-try:
-    from .production_settings import *
-except ImportError:
-    pass
+# Locale settings
+LANGUAGE_CODE = 'en'
+TIME_ZONE = 'Europe/Berlin'
+USE_I18N = True
+USE_L10N = True
+USE_TZ = True
+LOCALE_PATHS = [BASE_DIR / 'locale']
 
+# Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Site ID
+SITE_ID = 1
